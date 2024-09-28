@@ -20,7 +20,7 @@ service = Service(chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Define the URL of the website to scrape
-url = 'https://www.nawabmotors.ca/cars?make=&model=&Minyear=&Maxyear='
+url = 'https://www.copart.ca/lotSearchResults?free=true&query=&searchCriteria=%7B%22query%22:%5B%22*%22%5D,%22filter%22:%7B%22TITL%22:%5B%22title_group_code:TITLEGROUP_C%22%5D,%22MAKE%22:%5B%22lot_make_desc:%5C%22HONDA%5C%22%22%5D,%22VEHT%22:%5B%22vehicle_type_code:VEHTYPE_V%22,%22veh_cat_code:VEHCAT_S%22%5D%7D,%22searchName%22:%22%22,%22watchListOnly%22:false,%22freeFormSearch%22:false%7D'
 
 # Create a folder to save images
 folder_name = 'car_images'
@@ -28,8 +28,6 @@ if not os.path.exists(folder_name):
     os.makedirs(folder_name)
 
 # Initialize WebDriver and open the page
-service = Service(chrome_driver_path)
-driver = webdriver.Chrome(service=service, options=chrome_options)
 driver.get(url)
 
 # Scroll and wait for new content to load
@@ -56,9 +54,13 @@ soup = BeautifulSoup(driver.page_source, 'html.parser')
 driver.quit()
 
 # Find all image elements (usually in 'img' tags)
-image_tags = soup.find_all('img')
+image_tags = soup.find_all('img', alt='Lot Image')
 
 # Loop through the image tags and download each image
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+}
+
 for idx, img_tag in enumerate(image_tags):
     # Get the 'src' attribute (image URL)
     img_url = img_tag.get('src')
@@ -70,7 +72,7 @@ for idx, img_tag in enumerate(image_tags):
     if img_url.startswith('http'):
         # Try to download the image
         try:
-            img_data = requests.get(img_url).content
+            img_data = requests.get(img_url, headers=headers).content
             img_name = f"image_{idx + 1}.jpg"
             
             # Save the image in the folder
@@ -81,6 +83,9 @@ for idx, img_tag in enumerate(image_tags):
         
         except Exception as e:
             print(f"Failed to download image {idx + 1}: {e}")
+        
+        # Add delay to avoid getting blocked
+        time.sleep(2)
     else:
         print(f"Skipping invalid image URL: {img_url}")
 
